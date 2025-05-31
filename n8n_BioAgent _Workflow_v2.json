@@ -1,0 +1,394 @@
+{
+  "name": "AI Research Knowledge Graph Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "chatTrigger",
+        "options": {}
+      },
+      "id": "chat_trigger",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1,
+      "position": [200, 400]
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "You are a research assistant that specializes in building knowledge graphs and generating hypotheses from scientific data.\n\nYour task is to:\n1. Search for scientific data related to the user's research topic\n2. Build a knowledge graph from the results highlighting key entities (genes, proteins, pathways, conditions, drugs) and their relationships\n3. Analyze patterns and generate testable hypotheses\n\nYou have access to the following tools:\n- search_papers: Search academic papers via Semantic Scholar\n- search_pubmed: Search biomedical literature via PubMed\n- search_proteins: Search protein/gene data via UniProt\n- build_knowledge_graph: Process search results into a structured knowledge graph\n- analyze_patterns: Analyze the knowledge graph to find patterns and generate hypotheses\n\nWhen the user provides a research topic, use these tools systematically to gather data, build the knowledge graph, and generate insights.\n\nFormat your final response as:\n- **Summary of fetched data** (sources, highlights)\n- **Knowledge graph overview** (entities, relationships)\n- **Generated hypotheses** (with testable predictions and confidence levels)",
+        "options": {
+          "systemMessage": "You are a scientific research assistant focused on knowledge graph analysis and hypothesis generation."
+        }
+      },
+      "id": "ai_agent",
+      "name": "Research AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.2,
+      "position": [400, 400]
+    },
+    {
+      "parameters": {
+        "name": "search_papers",
+        "description": "Search for academic papers using Semantic Scholar API. Input should be search keywords/query.",
+        "workflowId": "{{ $workflow.id }}"
+      },
+      "id": "tool_search_papers",
+      "name": "Tool: Search Papers",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1,
+      "position": [600, 200]
+    },
+    {
+      "parameters": {
+        "name": "search_pubmed",
+        "description": "Search biomedical literature using PubMed API. Input should be search keywords/query.",
+        "workflowId": "{{ $workflow.id }}"
+      },
+      "id": "tool_search_pubmed",
+      "name": "Tool: Search PubMed",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "name": "search_proteins",
+        "description": "Search protein and gene data using UniProt API. Input should be search keywords/query.",
+        "workflowId": "{{ $workflow.id }}"
+      },
+      "id": "tool_search_proteins",
+      "name": "Tool: Search Proteins",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1,
+      "position": [600, 400]
+    },
+    {
+      "parameters": {
+        "name": "build_knowledge_graph",
+        "description": "Build a knowledge graph from search results. Input should be combined search results from papers, PubMed, and protein databases.",
+        "workflowId": "{{ $workflow.id }}"
+      },
+      "id": "tool_build_kg",
+      "name": "Tool: Build Knowledge Graph",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1,
+      "position": [600, 500]
+    },
+    {
+      "parameters": {
+        "name": "analyze_patterns",
+        "description": "Analyze knowledge graph patterns and generate hypotheses. Input should be the knowledge graph structure.",
+        "workflowId": "{{ $workflow.id }}"
+      },
+      "id": "tool_analyze_patterns",
+      "name": "Tool: Analyze Patterns",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1,
+      "position": [600, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "search_papers"
+            }
+          ]
+        }
+      },
+      "id": "switch_search_papers",
+      "name": "Route: Search Papers",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "search_pubmed"
+            }
+          ]
+        }
+      },
+      "id": "switch_search_pubmed",
+      "name": "Route: Search PubMed",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "search_proteins"
+            }
+          ]
+        }
+      },
+      "id": "switch_search_proteins",
+      "name": "Route: Search Proteins",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [800, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "build_knowledge_graph"
+            }
+          ]
+        }
+      },
+      "id": "switch_build_kg",
+      "name": "Route: Build KG",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [800, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "analyze_patterns"
+            }
+          ]
+        }
+      },
+      "id": "switch_analyze_patterns",
+      "name": "Route: Analyze Patterns",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [800, 600]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.semanticscholar.org/graph/v1/paper/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.query }}"
+            },
+            {
+              "name": "limit",
+              "value": "20"
+            },
+            {
+              "name": "fields",
+              "value": "title,abstract,authors,year,citationCount,references,citations"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "semantic_scholar_api",
+      "name": "Semantic Scholar API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "db",
+              "value": "pubmed"
+            },
+            {
+              "name": "term",
+              "value": "={{ $json.query }}"
+            },
+            {
+              "name": "retmax",
+              "value": "20"
+            },
+            {
+              "name": "retmode",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pubmed_api",
+      "name": "PubMed API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://rest.uniprot.org/uniprotkb/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.query }}"
+            },
+            {
+              "name": "size",
+              "value": "10"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "uniprot_api",
+      "name": "UniProt API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1000, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build knowledge graph from combined search results\nconst inputData = $json.data || $json;\n\n// Initialize knowledge graph structure\nlet knowledgeGraph = {\n  nodes: [],\n  edges: [],\n  entities: {\n    papers: [],\n    authors: [],\n    genes: [],\n    proteins: [],\n    pathways: [],\n    conditions: [],\n    drugs: []\n  },\n  metadata: {\n    created: new Date().toISOString(),\n    sources: ['Semantic Scholar', 'PubMed', 'UniProt']\n  }\n};\n\n// Extract entities from text using biomedical patterns\nfunction extractBioEntities(text) {\n  if (!text) return { genes: [], drugs: [], conditions: [], pathways: [] };\n  \n  const genePattern = /\\b[A-Z][A-Z0-9]{2,10}\\b/g;\n  const drugPattern = /\\b\\w*(inhibitor|agonist|antagonist|therapy|treatment|drug|compound)\\w*\\b/gi;\n  const conditionPattern = /\\b\\w*(cancer|disease|disorder|syndrome|inflammation|infection|tumor|carcinoma)\\w*\\b/gi;\n  const pathwayPattern = /\\b\\w*(pathway|signaling|cascade|network|regulation|mechanism)\\w*\\b/gi;\n  \n  return {\n    genes: [...new Set((text.match(genePattern) || []).filter(g => g.length >= 3))],\n    drugs: [...new Set((text.match(drugPattern) || []).map(d => d.toLowerCase()))],\n    conditions: [...new Set((text.match(conditionPattern) || []).map(c => c.toLowerCase()))],\n    pathways: [...new Set((text.match(pathwayPattern) || []).map(p => p.toLowerCase()))]\n  };\n}\n\n// Process different data types\nif (Array.isArray(inputData)) {\n  inputData.forEach(item => {\n    if (item.title) {\n      // Process paper data\n      const paper = {\n        id: item.paperId || `paper_${Date.now()}_${Math.random()}`,\n        title: item.title,\n        abstract: item.abstract,\n        year: item.year,\n        type: 'paper'\n      };\n      knowledgeGraph.entities.papers.push(paper);\n      \n      // Extract entities from abstract\n      const entities = extractBioEntities((item.abstract || '') + ' ' + (item.title || ''));\n      \n      // Add extracted entities with relationships\n      entities.genes.forEach(gene => {\n        const geneId = `gene_${gene}`;\n        knowledgeGraph.entities.genes.push({ id: geneId, name: gene, type: 'gene' });\n        knowledgeGraph.edges.push({\n          source: paper.id,\n          target: geneId,\n          relationship: 'mentions',\n          type: 'mention'\n        });\n      });\n      \n      entities.drugs.forEach(drug => {\n        const drugId = `drug_${drug}`;\n        knowledgeGraph.entities.drugs.push({ id: drugId, name: drug, type: 'drug' });\n        knowledgeGraph.edges.push({\n          source: paper.id,\n          target: drugId,\n          relationship: 'discusses',\n          type: 'mention'\n        });\n      });\n      \n      entities.conditions.forEach(condition => {\n        const conditionId = `condition_${condition}`;\n        knowledgeGraph.entities.conditions.push({ id: conditionId, name: condition, type: 'condition' });\n        knowledgeGraph.edges.push({\n          source: paper.id,\n          target: conditionId,\n          relationship: 'studies',\n          type: 'research_focus'\n        });\n      });\n      \n      entities.pathways.forEach(pathway => {\n        const pathwayId = `pathway_${pathway}`;\n        knowledgeGraph.entities.pathways.push({ id: pathwayId, name: pathway, type: 'pathway' });\n        knowledgeGraph.edges.push({\n          source: paper.id,\n          target: pathwayId,\n          relationship: 'investigates',\n          type: 'research_focus'\n        });\n      });\n      \n      // Add authors\n      if (item.authors) {\n        item.authors.forEach(author => {\n          const authorId = `author_${author.authorId || author.name}`;\n          knowledgeGraph.entities.authors.push({\n            id: authorId,\n            name: author.name,\n            type: 'author'\n          });\n          knowledgeGraph.edges.push({\n            source: authorId,\n            target: paper.id,\n            relationship: 'authored',\n            type: 'authorship'\n          });\n        });\n      }\n    } else if (item.primaryAccession) {\n      // Process protein data\n      const protein = {\n        id: item.primaryAccession,\n        name: item.proteinDescription?.recommendedName?.fullName?.value || 'Unknown',\n        organism: item.organism?.scientificName,\n        type: 'protein'\n      };\n      knowledgeGraph.entities.proteins.push(protein);\n      \n      // Add gene relationships\n      if (item.genes) {\n        item.genes.forEach(gene => {\n          const geneId = `gene_${gene.geneName?.value}`;\n          knowledgeGraph.entities.genes.push({\n            id: geneId,\n            name: gene.geneName?.value,\n            type: 'gene'\n          });\n          knowledgeGraph.edges.push({\n            source: geneId,\n            target: protein.id,\n            relationship: 'encodes',\n            type: 'genetic'\n          });\n        });\n      }\n    }\n  });\n} else if (inputData.data) {\n  // Handle API response format\n  if (inputData.data.results) {\n    // UniProt format\n    inputData.data.results.forEach(item => {\n      const protein = {\n        id: item.primaryAccession,\n        name: item.proteinDescription?.recommendedName?.fullName?.value || 'Unknown',\n        organism: item.organism?.scientificName,\n        type: 'protein'\n      };\n      knowledgeGraph.entities.proteins.push(protein);\n    });\n  } else if (Array.isArray(inputData.data)) {\n    // Semantic Scholar format\n    inputData.data.forEach(paper => {\n      const paperEntity = {\n        id: paper.paperId,\n        title: paper.title,\n        abstract: paper.abstract,\n        year: paper.year,\n        type: 'paper'\n      };\n      knowledgeGraph.entities.papers.push(paperEntity);\n    });\n  }\n}\n\n// Remove duplicates\nObject.keys(knowledgeGraph.entities).forEach(key => {\n  knowledgeGraph.entities[key] = knowledgeGraph.entities[key].filter((entity, index, self) => \n    index === self.findIndex(e => e.id === entity.id)\n  );\n});\n\n// Create consolidated nodes list\nknowledgeGraph.nodes = [\n  ...knowledgeGraph.entities.papers,\n  ...knowledgeGraph.entities.authors,\n  ...knowledgeGraph.entities.genes,\n  ...knowledgeGraph.entities.proteins,\n  ...knowledgeGraph.entities.pathways,\n  ...knowledgeGraph.entities.conditions,\n  ...knowledgeGraph.entities.drugs\n];\n\nreturn {\n  knowledge_graph: knowledgeGraph,\n  summary: {\n    total_nodes: knowledgeGraph.nodes.length,\n    total_edges: knowledgeGraph.edges.length,\n    entity_counts: {\n      papers: knowledgeGraph.entities.papers.length,\n      authors: knowledgeGraph.entities.authors.length,\n      genes: knowledgeGraph.entities.genes.length,\n      proteins: knowledgeGraph.entities.proteins.length,\n      pathways: knowledgeGraph.entities.pathways.length,\n      conditions: knowledgeGraph.entities.conditions.length,\n      drugs: knowledgeGraph.entities.drugs.length\n    }\n  }\n};"
+      },
+      "id": "build_kg_processor",
+      "name": "Knowledge Graph Builder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze knowledge graph patterns and generate hypotheses\nconst input = $json;\nconst kg = input.knowledge_graph || input;\n\n// Analyze network structure\nfunction analyzeNetworkStructure() {\n  const nodeConnections = {};\n  \n  // Calculate node connectivity\n  kg.nodes.forEach(node => {\n    const inEdges = kg.edges.filter(edge => edge.target === node.id).length;\n    const outEdges = kg.edges.filter(edge => edge.source === node.id).length;\n    nodeConnections[node.id] = {\n      node: node,\n      totalConnections: inEdges + outEdges,\n      inDegree: inEdges,\n      outDegree: outEdges\n    };\n  });\n  \n  // Find network hubs (top 10% most connected)\n  const sortedNodes = Object.values(nodeConnections)\n    .sort((a, b) => b.totalConnections - a.totalConnections);\n  const hubThreshold = Math.max(2, Math.ceil(sortedNodes.length * 0.1));\n  const hubs = sortedNodes.slice(0, hubThreshold);\n  \n  return { nodeConnections, hubs };\n}\n\n// Find biological pathways and causal chains\nfunction findBiologicalPatterns() {\n  const patterns = {\n    gene_protein_chains: [],\n    drug_target_relationships: [],\n    disease_gene_associations: [],\n    co_occurrence_clusters: []\n  };\n  \n  // Gene-Protein-Disease chains\n  kg.entities.genes?.forEach(gene => {\n    const proteinEdges = kg.edges.filter(edge => \n      edge.source === gene.id && edge.relationship === 'encodes'\n    );\n    \n    proteinEdges.forEach(proteinEdge => {\n      const diseaseEdges = kg.edges.filter(edge => \n        edge.source === proteinEdge.target &&\n        kg.entities.conditions?.some(c => c.id === edge.target)\n      );\n      \n      diseaseEdges.forEach(diseaseEdge => {\n        patterns.gene_protein_chains.push({\n          gene: gene.name,\n          protein: proteinEdge.target,\n          disease: diseaseEdge.target,\n          confidence: 0.7\n        });\n      });\n    });\n  });\n  \n  // Drug-target relationships\n  kg.entities.drugs?.forEach(drug => {\n    const targetEdges = kg.edges.filter(edge => \n      edge.source === drug.id && \n      (kg.entities.genes?.some(g => g.id === edge.target) || \n       kg.entities.proteins?.some(p => p.id === edge.target))\n    );\n    \n    targetEdges.forEach(edge => {\n      patterns.drug_target_relationships.push({\n        drug: drug.name,\n        target: edge.target,\n        relationship: edge.relationship,\n        confidence: 0.6\n      });\n    });\n  });\n  \n  // Co-occurrence analysis\n  const coOccurrenceMap = {};\n  kg.entities.papers?.forEach(paper => {\n    const paperEntities = kg.edges.filter(edge => edge.source === paper.id)\n      .map(edge => edge.target);\n    \n    // Create pairs of co-occurring entities\n    for (let i = 0; i < paperEntities.length; i++) {\n      for (let j = i + 1; j < paperEntities.length; j++) {\n        const pair = [paperEntities[i], paperEntities[j]].sort().join('|');\n        coOccurrenceMap[pair] = (coOccurrenceMap[pair] || 0) + 1;\n      }\n    }\n  });\n  \n  // Find frequent co-occurrences\n  Object.entries(coOccurrenceMap)\n    .filter(([pair, count]) => count >= 2)\n    .sort((a, b) => b[1] - a[1])\n    .slice(0, 10)\n    .forEach(([pair, count]) => {\n      const [entity1, entity2] = pair.split('|');\n      patterns.co_occurrence_clusters.push({\n        entity1,\n        entity2,\n        frequency: count,\n        confidence: Math.min(0.9, count * 0.2)\n      });\n    });\n  \n  return patterns;\n}\n\n// Generate testable hypotheses\nfunction generateHypotheses(networkAnalysis, patterns) {\n  const hypotheses = [];\n  \n  // Hub-based hypotheses\n  if (networkAnalysis.hubs.length > 0) {\n    const topHub = networkAnalysis.hubs[0];\n    hypotheses.push({\n      id: 1,\n      type: 'Network Hub Hypothesis',\n      hypothesis: `${topHub.node.name} (${topHub.node.type}) functions as a central regulatory node with ${topHub.totalConnections} connections, suggesting it plays a critical role in the biological network.`,\n      testable_prediction: `Perturbation of ${topHub.node.name} should cause widespread downstream effects on connected pathways and phenotypes.`,\n      experimental_approach: `Use knockdown/knockout studies, pharmacological inhibition, or overexpression experiments to test ${topHub.node.name} function.`,\n      confidence_level: 'High',\n      evidence_strength: topHub.totalConnections > 5 ? 'Strong' : 'Moderate'\n    });\n  }\n  \n  // Causal chain hypotheses\n  if (patterns.gene_protein_chains.length > 0) {\n    const chain = patterns.gene_protein_chains[0];\n    hypotheses.push({\n      id: 2,\n      type: 'Causal Pathway Hypothesis',\n      hypothesis: `A causal pathway exists: ${chain.gene} → ${chain.protein} → ${chain.disease}, where gene expression changes propagate through protein function to disease phenotype.`,\n      testable_prediction: `Modulating ${chain.gene} expression should affect ${chain.protein} levels and subsequently influence ${chain.disease}-related outcomes.`,\n      experimental_approach: `Use gene expression modulation (siRNA, CRISPR) and measure downstream protein levels and phenotypic changes.`,\n      confidence_level: 'Medium-High',\n      evidence_strength: 'Moderate'\n    });\n  }\n  \n  // Co-occurrence hypotheses\n  if (patterns.co_occurrence_clusters.length > 0) {\n    const cluster = patterns.co_occurrence_clusters[0];\n    hypotheses.push({\n      id: 3,\n      type: 'Functional Association Hypothesis',\n      hypothesis: `Entities ${cluster.entity1} and ${cluster.entity2} show significant co-occurrence (${cluster.frequency} papers), suggesting functional interaction or shared regulatory mechanisms.`,\n      testable_prediction: `Experimental perturbation of ${cluster.entity1} should affect ${cluster.entity2} expression, activity, or phenotype.`,\n      experimental_approach: `Conduct co-immunoprecipitation, genetic interaction studies, or parallel functional assays.`,\n      confidence_level: 'Medium',\n      evidence_strength: cluster.frequency > 3 ? 'Moderate' : 'Weak'\n    });\n  }\n  \n  // Drug-target hypotheses\n  if (patterns.drug_target_relationships.length > 0) {\n    const drugTarget = patterns.drug_target_relationships[0];\n    hypotheses.push({\n      id: 4,\n      type: 'Therapeutic Target Hypothesis',\n      hypothesis: `${drugTarget.drug} shows literature association with ${drugTarget.target}, suggesting potential therapeutic relevance or off-target effects.`,\n      testable_prediction: `${drugTarget.drug} treatment should modulate ${drugTarget.target} activity or expression in relevant disease models.`,\n      experimental_approach: `Test drug effects on target expression/activity using biochemical assays, cell-based models, or animal studies.`,\n      confidence_level: 'Medium',\n      evidence_strength: 'Preliminary'\n    });\n  }\n  \n  // Novel connection hypothesis\n  if (kg.entities.genes?.length > 0 && kg.entities.conditions?.length > 0) {\n    const unexploredGene = kg.entities.genes[Math.floor(Math.random() * kg.entities.genes.length)];\n    const unexploredCondition = kg.entities.conditions[Math.floor(Math.random() * kg.entities.conditions.length)];\n    \n    hypotheses.push({\n      id: 5,\n      type: 'Novel Connection Hypothesis',\n      hypothesis: `Based on network proximity analysis, ${unexploredGene.name} may have previously unrecognized connections to ${unexploredCondition.name}.`,\n      testable_prediction: `${unexploredGene.name} expression or function should be altered in ${unexploredCondition.name} contexts.`,\n      experimental_approach: `Examine ${unexploredGene.name} expression in ${unexploredCondition.name} patient samples or disease models.`,\n      confidence_level: 'Low-Medium',\n      evidence_strength: 'Speculative'\n    });\n  }\n  \n  return hypotheses;\n}\n\n// Perform analysis\nconst networkAnalysis = analyzeNetworkStructure();\nconst patterns = findBiologicalPatterns();\nconst hypotheses = generateHypotheses(networkAnalysis, patterns);\n\nreturn {\n  analysis_summary: {\n    total_nodes: kg.nodes?.length || 0,\n    total_edges: kg.edges?.length || 0,\n    network_density: kg.nodes?.length > 0 ? (kg.edges?.length || 0) / (kg.nodes.length * (kg.nodes.length - 1)) : 0,\n    hub_nodes: networkAnalysis.hubs.slice(0, 5).map(hub => ({\n      name: hub.node.name,\n      type: hub.node.type,\n      connections: hub.totalConnections\n    }))\n  },\n  discovered_patterns: {\n    causal_chains: patterns.gene_protein_chains.length,\n    drug_targets: patterns.drug_target_relationships.length,\n    co_occurrences: patterns.co_occurrence_clusters.length\n  },\n  generated_hypotheses: hypotheses,\n  research_recommendations: {\n    priority_experiments: hypotheses.filter(h => h.confidence_level.includes('High')).map(h => h.experimental_approach),\n    potential_collaborations: networkAnalysis.hubs.slice(0, 3).map(hub => `Researchers studying ${hub.node.name}`),\n    follow_up_searches: [`${kg.entities.genes?.[0]?.name || 'top gene'} mechanisms`, `${kg.entities.conditions?.[0]?.name || 'main condition'} biomarkers`]\n  }\n};"
+      },
+      "id": "pattern_analyzer",
+      "name": "Pattern Analyzer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 600]
+    }
+  ],
+  "connections": {
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Research AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Route: Search Papers",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Route: Search PubMed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Route: Search Proteins",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Route: Build KG",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Route: Analyze Patterns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Search Papers": {
+      "main": [
+        [
+          {
+            "node": "Semantic Scholar API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Search PubMed": {
+      "main": [
+        [
+          {
+            "node": "PubMed API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Search Proteins": {
+      "main": [
+        [
+          {
+            "node": "UniProt API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Build KG": {
+      "main": [
+        [
+          {
+            "node": "Knowledge Graph Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Analyze Patterns": {
+      "main": [
+        [
+          {
+            "node": "Pattern Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-20T10:00:00.000Z",
+  "versionId": "2"
